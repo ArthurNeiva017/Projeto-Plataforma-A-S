@@ -29,6 +29,9 @@ let display;
 let camera;
 let signedInName = '';
 let onlineUsers = [];
+let generalMessages = [];
+let generalSending = false;
+let chatStatus = '';
 let sessionVersion = 0;
 let pending = false;
 let roomSession = 0;
@@ -96,7 +99,16 @@ function renderChannels() {
 function renderMessages() {
   const log = byId('messages');
   log.replaceChildren();
-  for (const [name, color, time, message] of textChannels[activeText]) {
+  const messages = activeText === 'geral'
+    ? generalMessages.map(({author, body, createdAt}) => [
+      author, 'mint', new Date(createdAt).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}), body,
+    ])
+    : textChannels[activeText];
+  const status = byId('chat-status');
+  status.textContent = activeText === 'geral' ? chatStatus : '';
+  status.hidden = !status.textContent;
+  byId('composer').querySelector('button').disabled = activeText === 'geral' && generalSending;
+  for (const [name, color, time, message] of messages) {
     const item = document.createElement('article');
     const avatar = document.createElement('span');
     const details = document.createElement('div');
@@ -114,7 +126,7 @@ function renderMessages() {
     log.append(item);
   }
   log.scrollTop = log.scrollHeight;
-  const count = textChannels[activeText].length;
+  const count = messages.length;
   if (!count) {
     const empty = document.createElement('p');
     empty.className = 'empty-chat';
@@ -293,11 +305,47 @@ byId('camera').addEventListener('click', () => {
   byId('status').textContent = 'Câmera desligada.';
   renderVoice();
 });
-byId('composer').addEventListener('submit', (event) => {
+async function refreshGeneral(message) {
+  const version = sessionVersion;
+  try {
+    const options = message === undefined ? {} : {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({body: message}),
+    };
+    const response = await fetch('/api/channels/geral/messages', options);
+    const data = await response.json();
+    if (version !== sessionVersion) return false;
+    if (!response.ok) throw new Error(data.error);
+    if ((data.messages.at(-1)?.id ?? 0) > (generalMessages.at(-1)?.id ?? 0)) {
+      generalMessages = data.messages;
+      if (activeText === 'geral') renderMessages();
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+byId('composer').addEventListener('submit', async (event) => {
   event.preventDefault();
   const input = byId('message');
   const message = input.value.trim();
   if (!message) return;
+  if (activeText === 'geral') {
+    if (generalSending) return;
+    const version = sessionVersion;
+    const draft = input.value;
+    generalSending = true;
+    chatStatus = '';
+    renderMessages();
+    const sent = await refreshGeneral(message);
+    generalSending = false;
+    if (version === sessionVersion) {
+      if (sent && activeText === 'geral' && input.value === draft) input.value = '';
+      if (!sent) chatStatus = 'Não foi possível enviar a mensagem. Confira a conexão e tente novamente.';
+    }
+    if (activeText === 'geral') renderMessages();
+    return;
+  }
   const time = new Date().toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
   textChannels[activeText].push([byId('profile-name').textContent, 'mint', time, message]);
   save();
@@ -509,6 +557,10 @@ function renderOnline() {
 }
 
 function applySession(name, online = []) {
+  if (!name) {
+    generalMessages = [];
+    chatStatus = '';
+  }
   signedInName = name;
   onlineUsers = online;
   byId('workspace').hidden = !name;
@@ -530,6 +582,7 @@ async function refreshPresence() {
           renderOnline();
         }
       } else applySession(data.name, data.online);
+      await refreshGeneral();
     } else if (response.status === 401 && signedInName) {
       leaveRoom();
       if (panel.open) panel.close();

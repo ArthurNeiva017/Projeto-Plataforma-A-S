@@ -1,6 +1,7 @@
 import {createServer} from 'node:http';
 import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
+import {createMessaging} from './messaging.mjs';
 
 const assets = new Map([
   ['/', ['index.html', 'text/html']],
@@ -30,9 +31,19 @@ async function readName(request) {
   return '';
 }
 
-export function createAppServer() {
-  return createServer(async (request, response) => {
-    const path = request.url.split('?')[0];
+export function createAppServer({dbPath = process.env.PONTO_DB_PATH || 'ponto.sqlite'} = {}) {
+  const messaging = createMessaging(dbPath, json);
+  const server = createServer(async (request, response) => {
+    const url = new URL('http://localhost' + request.url);
+    const path = url.pathname;
+    if (path === '/api/accounts' || path.startsWith('/api/accounts/') || path === '/api/messages' || path.startsWith('/api/messages/')) {
+      try {
+        return await messaging.handle(request, response, url);
+      } catch (error) {
+        console.error(error);
+        return json(response, 500, {error: 'Erro interno do servidor.'});
+      }
+    }
     const {method} = request;
     const cookie = request.headers.cookie?.match(/(?:^|;\s*)ponto_session=([a-f0-9-]+)/)?.[1];
     const now = Date.now();
@@ -40,6 +51,14 @@ export function createAppServer() {
     if (path.startsWith('/api/')) {
       for (const [id, session] of sessions) {
         if (now - session.lastSeen > sessionLifetime) sessions.delete(id);
+      }
+      if (path === '/api/channels/geral/messages') {
+        try {
+          return await messaging.handleGeneral(request, response, sessions.get(cookie));
+        } catch (error) {
+          console.error(error);
+          return json(response, 500, {error: 'Erro interno do servidor.'});
+        }
       }
       if (method === 'POST' && path === '/api/login') {
         const name = await readName(request);
@@ -76,4 +95,6 @@ export function createAppServer() {
       response.writeHead(500).end();
     }
   });
+  server.on('close', messaging.close);
+  return server;
 }
