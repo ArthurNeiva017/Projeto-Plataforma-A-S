@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Ponto de Encontro</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <section id="login" class="login" aria-labelledby="login-title">
+    <form id="login-form" class="login-card">
+      <span class="logo" aria-hidden="true">✳</span>
+      <h1 id="login-title">Ponto de Encontro</h1>
+      <label for="login-name">Nome de teste</label>
+      <input id="login-name" maxlength="32" autocomplete="nickname" required>
+      <button id="login-submit" class="primary" type="submit">Entrar</button>
+      <p id="login-status" role="status">Use um nome diferente em cada navegador para testar a presença.</p>
+    </form>
+  </section>
+  <div class="workspace" id="workspace" hidden>
+    <aside class="sidebar" aria-label="Canais">
+      <div class="brand"><span class="logo" id="brand-icon" aria-hidden="true">✳</span><div><strong id="brand-name">Ponto de Encontro</strong><small id="brand-description">Comunidade privada</small></div></div>
+      <nav id="channels"></nav>
+      <div class="sidebar-actions"><button type="button" id="invite">＋ Convidar</button><button type="button" id="settings">⚙ Configurações</button><button type="button" id="logout">Sair da conta de teste</button></div>
+      <div class="profile"><span class="avatar mint" id="profile-avatar">V</span><div><strong id="profile-name">Você</strong><small id="profile-bio"></small><small id="profile-status"></small></div></div>
+    </aside>
+    <main>
+      <header class="topbar"><button type="button" id="menu" aria-label="Abrir canais" aria-expanded="false">☰</button><div><strong id="title"></strong><small id="subtitle"></small></div><span class="preview">Prévia local</span></header>
+      <section class="room" id="room" aria-label="Sala de voz">
+        <div class="room-info"><span class="room-icon" aria-hidden="true">▥</span><div><small>CANAL DE VOZ</small><h1 id="voice-name">Lounge</h1><p id="voice-count"></p></div></div>
+        <div class="controls"><button type="button" id="join" class="primary">Entrar na sala</button><button type="button" id="mic" hidden>Ativar microfone</button><button type="button" id="camera" hidden>Ligar câmera</button><button type="button" id="share" hidden>Compartilhar tela</button></div>
+        <p id="status" role="status"></p>
+        <video id="screen" autoplay muted playsinline hidden></video>
+        <video id="camera-preview" aria-label="Prévia local da câmera" autoplay muted playsinline hidden></video>
+      </section>
+      <section class="conversation" aria-label="Conversa">
+        <div class="chat-heading"><h2 id="chat-title"></h2><span id="chat-count"></span></div>
+        <p class="welcome" id="welcome" hidden></p>
+        <div id="messages" role="log" aria-label="Mensagens"></div>
+        <form id="composer"><input id="message" aria-label="Mensagem" maxlength="1000" autocomplete="off" required><button class="primary" type="submit">Enviar</button></form>
+      </section>
+    </main>
+    <aside class="people" aria-label="Participantes">
+      <h2 id="online-count">Online agora</h2><div id="online-users" role="status"></div>
+      <h2>Participantes</h2><small id="member-count"></small>
+      <div class="person"><span class="avatar mint" id="member-avatar">V</span><div><strong id="member-name">Você</strong><small id="presence">Fora da sala</small></div></div>
+      <div id="members"></div>
+    </aside>
+  </div>
+  <dialog id="panel" aria-labelledby="panel-title">
+    <header><h2 id="panel-title"></h2><button id="close-panel" type="button" aria-label="Fechar">×</button></header>
+    <nav class="settings-nav" id="settings-nav" aria-label="Seções de configurações" hidden></nav>
+    <form id="panel-form"></form>
+  </dialog>
+</body>
+</html>
